@@ -27,42 +27,6 @@ const (
 	randomTokenLength  = 64
 )
 
-// authenticateWithAPI 通过调用外部接口验证手机号和密码
-func authenticateWithAPI(phone, password string) (bool, error) {
-	// 自定义认证接口的 URL
-	url := "http://119.6.186.164:9099/tasi_chat_server/login/loginByPassword"
-
-	// 构建请求体，使用 Phone 和 Password
-	payload := map[string]string{
-		"Phone":   phone,
-		"Password": password,
-	}
-
-	// 将请求体转换为 JSON 格式
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal credentials: %w", err)
-	}
-
-	// 发起 POST 请求进行身份验证
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return false, fmt.Errorf("failed to make API request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	// 解析 API 返回的 JSON 数据
-	var result map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return false, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	// 检查返回的 `authenticated` 字段，表示验证结果
-	authenticated, ok := result["authenticated"].(bool)
-	return ok && authenticated, nil
-}
-
-
 func emitLoginAttempt(success bool, username, address string, evLogger events.Logger) {
 	evLogger.Log(events.LoginAttempt, map[string]interface{}{
 		"success":       success,
@@ -167,53 +131,26 @@ func (m *basicAuthAndSessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http
 }
 
 func (m *basicAuthAndSessionMiddleware) passwordAuthHandler(w http.ResponseWriter, r *http.Request) {
-	// var req struct {
-	// 	Username     string
-	// 	Password     string
-	// 	StayLoggedIn bool
-	// }
-	// if err := unmarshalTo(r.Body, &req); err != nil {
-	// 	l.Debugln("Failed to parse username and password:", err)
-	// 	http.Error(w, "Failed to parse username and password.", http.StatusBadRequest)
-	// 	return
-	// }
-
-	// if auth(req.Username, req.Password, m.guiCfg, m.ldapCfg) {
-	// 	m.tokenCookieManager.createSession(req.Username, req.StayLoggedIn, w, r)
-	// 	w.WriteHeader(http.StatusNoContent)
-	// 	return
-	// }
-
-	// emitLoginAttempt(false, req.Username, r.RemoteAddr, m.evLogger)
-	// antiBruteForceSleep()
-	// forbidden(w)
 	var req struct {
-		Phone        string // 修改为 Phone
+		Username     string
 		Password     string
 		StayLoggedIn bool
 	}
-
-	// 解析请求体，获取手机号和密码
 	if err := unmarshalTo(r.Body, &req); err != nil {
-		log.Debugln("Failed to parse phone and password:", err)
-		http.Error(w, "Failed to parse phone and password.", http.StatusBadRequest)
+		l.Debugln("Failed to parse username and password:", err)
+		http.Error(w, "Failed to parse username and password.", http.StatusBadRequest)
 		return
 	}
 
-	// 调用自定义的 API 进行验证
-	authenticated, err := authenticateWithAPI(req.Phone, req.Password)
-	if err != nil || !authenticated {
-		emitLoginAttempt(false, req.Phone, r.RemoteAddr, m.evLogger)
-		antiBruteForceSleep()
-		forbidden(w)
+	if auth(req.Username, req.Password, m.guiCfg, m.ldapCfg) {
+		m.tokenCookieManager.createSession(req.Username, req.StayLoggedIn, w, r)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
-	// 如果认证成功，创建会话
-	m.tokenCookieManager.createSession(req.Phone, req.StayLoggedIn, w, r)
-
-	// 返回 204 No Content 状态表示认证成功
-	w.WriteHeader(http.StatusNoContent)
+	emitLoginAttempt(false, req.Username, r.RemoteAddr, m.evLogger)
+	antiBruteForceSleep()
+	forbidden(w)
 }
 
 func attemptBasicAuth(r *http.Request, guiCfg config.GUIConfiguration, ldapCfg config.LDAPConfiguration, evLogger events.Logger) (string, bool) {
@@ -244,21 +181,12 @@ func (m *basicAuthAndSessionMiddleware) handleLogout(w http.ResponseWriter, r *h
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// func auth(username string, password string, guiCfg config.GUIConfiguration, ldapCfg config.LDAPConfiguration) bool {
-// 	if guiCfg.AuthMode == config.AuthModeLDAP {
-// 		return authLDAP(username, password, ldapCfg)
-// 	} else {
-// 		return authStatic(username, password, guiCfg)
-// 	}
-// }
-
 func auth(username string, password string, guiCfg config.GUIConfiguration, ldapCfg config.LDAPConfiguration) bool {
-	// 使用自定义的认证 API 进行验证
-	authenticated, err := authenticateWithAPI(username, password) // username 作为 Phone 传递
-	if err != nil || !authenticated {
-		return false
+	if guiCfg.AuthMode == config.AuthModeLDAP {
+		return authLDAP(username, password, ldapCfg)
+	} else {
+		return authStatic(username, password, guiCfg)
 	}
-	return true
 }
 
 func authStatic(username string, password string, guiCfg config.GUIConfiguration) bool {

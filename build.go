@@ -94,7 +94,7 @@ var targets = map[string]target{
 		debname:     "syncthing",
 		debdeps:     []string{"libc6", "procps"},
 		description: "Open Source Continuous File Synchronization",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/syncthing"},
+		buildPkgs:   []string{"./cmd/syncthing"},
 		binaryName:  "syncthing", // .exe will be added automatically for Windows builds
 		archiveFiles: []archiveFile{
 			{src: "{{binary}}", dst: "{{binary}}", perm: 0o755},
@@ -139,7 +139,7 @@ var targets = map[string]target{
 		debdeps:     []string{"libc6"},
 		debpre:      "cmd/stdiscosrv/scripts/preinst",
 		description: "Syncthing Discovery Server",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/stdiscosrv"},
+		buildPkgs:   []string{"./cmd/stdiscosrv"},
 		binaryName:  "stdiscosrv", // .exe will be added automatically for Windows builds
 		archiveFiles: []archiveFile{
 			{src: "{{binary}}", dst: "{{binary}}", perm: 0o755},
@@ -166,7 +166,7 @@ var targets = map[string]target{
 		debdeps:     []string{"libc6"},
 		debpre:      "cmd/strelaysrv/scripts/preinst",
 		description: "Syncthing Relay Server",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/strelaysrv"},
+		buildPkgs:   []string{"./cmd/strelaysrv"},
 		binaryName:  "strelaysrv", // .exe will be added automatically for Windows builds
 		archiveFiles: []archiveFile{
 			{src: "{{binary}}", dst: "{{binary}}", perm: 0o755},
@@ -193,7 +193,7 @@ var targets = map[string]target{
 		debname:     "syncthing-relaypoolsrv",
 		debdeps:     []string{"libc6"},
 		description: "Syncthing Relay Pool Server",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/infra/strelaypoolsrv"},
+		buildPkgs:   []string{"./cmd/infra/strelaypoolsrv"},
 		binaryName:  "strelaypoolsrv", // .exe will be added automatically for Windows builds
 		archiveFiles: []archiveFile{
 			{src: "{{binary}}", dst: "{{binary}}", perm: 0o755},
@@ -211,19 +211,19 @@ var targets = map[string]target{
 	"stupgrades": {
 		name:        "stupgrades",
 		description: "Syncthing Upgrade Check Server",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/infra/stupgrades"},
+		buildPkgs:   []string{"./cmd/infra/stupgrades"},
 		binaryName:  "stupgrades",
 	},
 	"stcrashreceiver": {
 		name:        "stcrashreceiver",
 		description: "Syncthing Crash Server",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/infra/stcrashreceiver"},
+		buildPkgs:   []string{"./cmd/infra/stcrashreceiver"},
 		binaryName:  "stcrashreceiver",
 	},
 	"ursrv": {
 		name:        "ursrv",
 		description: "Syncthing Usage Reporting Server",
-		buildPkgs:   []string{"github.com/kcon0305/TasiSyncthing/cmd/infra/ursrv"},
+		buildPkgs:   []string{"./cmd/infra/ursrv"},
 		binaryName:  "ursrv",
 	},
 }
@@ -236,7 +236,7 @@ func initTargets() {
 			// No go files in the directory
 			continue
 		}
-		all.buildPkgs = append(all.buildPkgs, fmt.Sprintf("github.com/kcon0305/TasiSyncthing/%s", pkg))
+		all.buildPkgs = append(all.buildPkgs, fmt.Sprintf("./%s", pkg))
 	}
 	targets["all"] = all
 
@@ -306,10 +306,10 @@ func runCommand(cmd string, target target) {
 		build(target, tags)
 
 	case "test":
-		test(strings.Fields(extraTags), "github.com/kcon0305/TasiSyncthing/lib/...", "github.com/kcon0305/TasiSyncthing/cmd/...")
+		test(strings.Fields(extraTags), "./lib/...", "./cmd/...")
 
 	case "bench":
-		bench(strings.Fields(extraTags), "github.com/kcon0305/TasiSyncthing/lib/...", "github.com/kcon0305/TasiSyncthing/cmd/...")
+		bench(strings.Fields(extraTags), "./lib/...", "./cmd/...")
 
 	case "integration":
 		integration(false)
@@ -834,7 +834,7 @@ func listFiles(dir string) []string {
 
 func rebuildAssets() {
 	os.Setenv("SOURCE_DATE_EPOCH", fmt.Sprint(buildStamp()))
-	runPrint(goCmd, "generate", "github.com/kcon0305/TasiSyncthing/lib/api/auto", "github.com/kcon0305/TasiSyncthing/cmd/infra/strelaypoolsrv/auto")
+	runPrint(goCmd, "generate", "./lib/api/auto", "./cmd/infra/strelaypoolsrv/auto")
 }
 
 func lazyRebuildAssets() {
@@ -939,20 +939,20 @@ func proto() {
 	}
 	runPrintInDir(path, "git", "checkout", pv)
 
-	runPrint(goCmd, "generate", "github.com/kcon0305/TasiSyncthing/cmd/stdiscosrv")
+	runPrint(goCmd, "generate", "./cmd/stdiscosrv")
 	runPrint(goCmd, "generate", "proto/generate.go")
 }
 
 func testmocks() {
 	args := []string{
 		"generate",
-		"github.com/kcon0305/TasiSyncthing/lib/config",
-		"github.com/kcon0305/TasiSyncthing/lib/connections",
-		"github.com/kcon0305/TasiSyncthing/lib/discover",
-		"github.com/kcon0305/TasiSyncthing/lib/events",
-		"github.com/kcon0305/TasiSyncthing/lib/logger",
-		"github.com/kcon0305/TasiSyncthing/lib/model",
-		"github.com/kcon0305/TasiSyncthing/lib/protocol",
+		"./lib/config",
+		"./lib/connections",
+		"./lib/discover",
+		"./lib/events",
+		"./lib/logger",
+		"./lib/model",
+		"./lib/protocol",
 	}
 	runPrint(goCmd, args...)
 }
@@ -981,11 +981,11 @@ func weblate() {
 func ldflags(tags []string) string {
 	b := new(strings.Builder)
 	b.WriteString("-w")
-	fmt.Fprintf(b, " -X github.com/kcon0305/TasiSyncthing/lib/build.Version=%s", version)
-	fmt.Fprintf(b, " -X github.com/kcon0305/TasiSyncthing/lib/build.Stamp=%d", buildStamp())
-	fmt.Fprintf(b, " -X github.com/kcon0305/TasiSyncthing/lib/build.User=%s", buildUser())
-	fmt.Fprintf(b, " -X github.com/kcon0305/TasiSyncthing/lib/build.Host=%s", buildHost())
-	fmt.Fprintf(b, " -X github.com/kcon0305/TasiSyncthing/lib/build.Tags=%s", strings.Join(tags, ","))
+	fmt.Fprintf(b, " -X ./lib/build.Version=%s", version)
+	fmt.Fprintf(b, " -X ./lib/build.Stamp=%d", buildStamp())
+	fmt.Fprintf(b, " -X ./lib/build.User=%s", buildUser())
+	fmt.Fprintf(b, " -X ./lib/build.Host=%s", buildHost())
+	fmt.Fprintf(b, " -X ./lib/build.Tags=%s", strings.Join(tags, ","))
 	if v := os.Getenv("EXTRA_LDFLAGS"); v != "" {
 		fmt.Fprintf(b, " %s", v)
 	}
